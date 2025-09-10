@@ -26,7 +26,7 @@ export default function HomePage() {
                   Create your account to start building your profile.
                 </p>
               </div>
-              <Link href="/register" className="mt-4">
+              <Link href="/auth/register" className="mt-4">
                 <Button className="w-full h-10">
                   Create account
                 </Button>
@@ -41,7 +41,7 @@ export default function HomePage() {
                   Log in to continue.
                 </p>
               </div>
-              <Link href="/login" className="mt-4">
+              <Link href="/auth/login" className="mt-4">
                 <Button variant="outline" className="w-full h-10">
                   Log in
                 </Button>
