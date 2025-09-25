@@ -10,6 +10,7 @@ export const endpoints = {
     revoke:    `${API_BASE}/auth/refresh`, // DELETE
     me:        `${API_BASE}/me`,
   },
+  documents: `${API_BASE}/documents`,
   education: {
     records:        `${API_BASE}/education/education_records`,
     record: (id: number) => `${API_BASE}/education/education_records/${id}`,

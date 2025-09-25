@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
+import UploadLinkedInPdfCard from "@/components/documents/UploadLinkedInPdfCard";
+
 type EmploymentRecord = {
   id: number;
   company_name?: string;
@@ -27,7 +29,7 @@ type EducationRecord = {
   program_name?: string;
   degree_level?: string;
   started_on?: string;
-  ended_on?: string | null;
+  completed_on?: string | null; // aligned with backend
 };
 
 export default function DashboardPage() {
@@ -37,14 +39,14 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function safeFetch(url: string, init?: RequestInit) {
-    // tenta com access token atual
+    // try with current access token
     let res = await fetch(url, {
       ...init,
       headers: { Accept: "application/json", ...(init?.headers || {}), ...authHeader() },
       credentials: "include",
     });
 
-    // se expirar (401), tenta refresh e repete 1x
+    // if expired (401), try refresh and retry once
     if (res.status === 401) {
       try {
         await refreshAccessToken();
@@ -54,7 +56,7 @@ export default function DashboardPage() {
           credentials: "include",
         });
       } catch {
-        // refresh falhou: deixa seguir para 401
+        // refresh failed: let it return 401
       }
     }
     return res;
@@ -103,7 +105,7 @@ export default function DashboardPage() {
   const hasEmployment = employment.length > 0;
   const hasEducation = education.length > 0;
 
-  // profile completion bem simples: 50% para cada seção
+  // very simple profile completion: 50% for each section
   const completion = (Number(hasEmployment) + Number(hasEducation)) * 50;
 
   return (
@@ -196,56 +198,10 @@ export default function DashboardPage() {
         </div>
       </AppCard>
 
-      {/* Snapshots (opcional, simples) */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <AppCard className="p-5">
-          <h3 className="text-lg font-medium">Employment snapshot</h3>
-          {loading ? (
-            <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
-          ) : hasEmployment ? (
-            <ul className="mt-3 space-y-2 text-sm">
-              {employment.slice(0, 3).map((e) => (
-                <li key={e.id} className="rounded border border-border p-3">
-                  <div className="font-medium">{e.title || "Role"}</div>
-                  <div className="text-muted-foreground">{e.company_name || "Company"}</div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-muted-foreground">
-              No employment records yet.
-            </p>
-          )}
-        </AppCard>
+      {/* New: LinkedIn PDF upload card (replaces the snapshots) */}
+      <UploadLinkedInPdfCard />
 
-        <AppCard className="p-5">
-          <h3 className="text-lg font-medium">Education snapshot</h3>
-          {loading ? (
-            <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
-          ) : hasEducation ? (
-            <ul className="mt-3 space-y-2 text-sm">
-              {education.slice(0, 3).map((r) => (
-                <li key={r.id} className="rounded border border-border p-3">
-                  <div className="font-medium">{r.program_name || "Program"}</div>
-                  <div className="text-muted-foreground">
-                    {r.institution_name || "Institution"}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-muted-foreground">
-              No education records yet.
-            </p>
-          )}
-        </AppCard>
-      </div>
-
-      {error && (
-        <p className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
