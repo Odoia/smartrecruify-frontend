@@ -49,7 +49,7 @@ export default function LoginPage() {
       saveTokens({ accessToken, refreshToken: json?.refresh_token });
 
       toast.success("Welcome back!");
-      router.replace("/employment");
+      router.replace("/dashboard");
     } catch (err: any) {
       toast.error(err?.message || "Network error");
     } finally {
