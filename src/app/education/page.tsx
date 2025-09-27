@@ -1,11 +1,12 @@
+// src/app/education/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { endpoints } from "@/lib/endpoints";
-import { authHeader } from "@/lib/auth";
-import { refreshAccessToken } from "@/lib/session";
+import { authHeader } from "@/lib/auth/auth";
+import { refreshAccessToken } from "@/lib/auth/refresh";
 
 import { AppCard } from "@/components/ui/app-card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// ---- Types ----
 type EducationRecord = {
   id: number;
   degree_level?: string | null;
@@ -46,7 +46,6 @@ type EducationRecord = {
   updated_at?: string;
 };
 
-// ---- Options ----
 const DEGREE_LEVELS = [
   "high_school",
   "associate",
@@ -61,11 +60,9 @@ const DEGREE_LEVELS = [
 
 const STATUSES = ["in_progress", "completed", "dropped", "paused"];
 
-// helper para humanizar labels (ex.: "in_progress" -> "In Progress")
 const humanize = (s: string) =>
   s.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-// ---- Page ----
 export default function EducationPage() {
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<EducationRecord[]>([]);
@@ -133,7 +130,7 @@ export default function EducationPage() {
   }, []);
 
   const sorted = useMemo(() => {
-    // in-progress [48;79;156;1343;1248tprimeiro; depois por data desc (expected_end_on/ended_on/started_on)
+    // in_progress primeiro; depois por data desc (expected_end_on/ended_on/started_on)
     const rankStatus = (s?: string | null) =>
       s === "in_progress" ? 2 : s === "completed" ? 1 : 0;
 
@@ -151,7 +148,6 @@ export default function EducationPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // validações mínimas do frontend
       if (!programName.trim()) {
         toast.error("Program name is required");
         setSubmitting(false);
@@ -163,7 +159,6 @@ export default function EducationPage() {
         return;
       }
 
-      // convert gpa to number/null
       const gpaNumber =
         gpa.trim() === "" ? null : Number.isNaN(Number(gpa)) ? null : Number(gpa);
 
@@ -171,13 +166,13 @@ export default function EducationPage() {
         education_record: {
           degree_level: degreeLevel || null,
           institution_name: institutionName,
-          program_name: programName, // obrigatório
+          program_name: programName,
           started_on: startedOn || null,
           expected_end_on: expectedEndOn || null,
           status: status || null,
           gpa: gpaNumber,
           transcript_url: transcriptUrl || null,
-          // description: notes || null, // caso exista no modelo
+          // description: notes || null, // habilite se existir no modelo
         },
       };
 
@@ -192,8 +187,7 @@ export default function EducationPage() {
           const text = await res.text();
           try {
             const parsed = JSON.parse(text);
-            const details: string[] =
-              parsed?.details || [parsed?.error || "Unprocessable Content"];
+            const details: string[] = parsed?.details || [parsed?.error || "Unprocessable Content"];
             toast.error(details.join("\n"));
           } catch {
             toast.error(text || "Validation failed (422)");
@@ -207,7 +201,7 @@ export default function EducationPage() {
 
       toast.success("Education record created");
       setOpen(false);
-      // reset form
+      // reset
       setDegreeLevel("bachelor");
       setInstitutionName("");
       setProgramName("");
@@ -228,7 +222,6 @@ export default function EducationPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Education</h1>
@@ -251,26 +244,15 @@ export default function EducationPage() {
 
             <form onSubmit={onCreate} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                {/* Degree level */}
                 <div className="space-y-2">
                   <Label>Degree level</Label>
                   <Select value={degreeLevel} onValueChange={setDegreeLevel}>
                     <SelectTrigger className="w-full bg-background">
                       <SelectValue placeholder="Select degree level" />
                     </SelectTrigger>
-                    <SelectContent
-                      position="popper"
-                      side="bottom"
-                      align="start"
-                      sideOffset={8}
-                      className="z-[70] w-[var(--radix-select-trigger-width)] max-h-64 overflow-y-auto rounded-md border border-border bg-card text-card-foreground shadow-lg"
-                    >
+                    <SelectContent className="z-[70] w-[var(--radix-select-trigger-width)] max-h-64 overflow-y-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md">
                       {DEGREE_LEVELS.map((lvl) => (
-                        <SelectItem
-                          key={lvl}
-                          value={lvl}
-                          className="cursor-pointer px-3 py-2 text-sm focus:bg-muted"
-                        >
+                        <SelectItem key={lvl} value={lvl} className="cursor-pointer px-3 py-2 text-sm focus:bg-accent">
                           {humanize(lvl)}
                         </SelectItem>
                       ))}
@@ -278,7 +260,6 @@ export default function EducationPage() {
                   </Select>
                 </div>
 
-                {/* Institution */}
                 <div className="space-y-2">
                   <Label htmlFor="institution_name">Institution</Label>
                   <Input
@@ -289,7 +270,6 @@ export default function EducationPage() {
                   />
                 </div>
 
-                {/* Program (obrigatório) */}
                 <div className="space-y-2">
                   <Label htmlFor="program_name">Program</Label>
                   <Input
@@ -301,7 +281,6 @@ export default function EducationPage() {
                   />
                 </div>
 
-                {/* Start date */}
                 <div className="space-y-2">
                   <Label htmlFor="started_on">Start date</Label>
                   <Input
@@ -312,7 +291,6 @@ export default function EducationPage() {
                   />
                 </div>
 
-                {/* Expected end date */}
                 <div className="space-y-2">
                   <Label htmlFor="expected_end_on">Expected end date</Label>
                   <Input
@@ -323,26 +301,15 @@ export default function EducationPage() {
                   />
                 </div>
 
-                {/* Status */}
                 <div className="space-y-2">
                   <Label>Status</Label>
                   <Select value={status} onValueChange={setStatus}>
                     <SelectTrigger className="w-full bg-background">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
-                    <SelectContent
-                      position="popper"
-                      side="bottom"
-                      align="start"
-                      sideOffset={8}
-                      className="z-[70] w-[var(--radix-select-trigger-width)] max-h-64 overflow-y-auto rounded-md border border-border bg-card text-card-foreground shadow-lg"
-                    >
+                    <SelectContent className="z-[70] w-[var(--radix-select-trigger-width)] max-h-64 overflow-y-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md">
                       {STATUSES.map((s) => (
-                        <SelectItem
-                          key={s}
-                          value={s}
-                          className="cursor-pointer px-3 py-2 text-sm focus:bg-muted"
-                        >
+                        <SelectItem key={s} value={s} className="cursor-pointer px-3 py-2 text-sm focus:bg-accent">
                           {humanize(s)}
                         </SelectItem>
                       ))}
@@ -350,7 +317,6 @@ export default function EducationPage() {
                   </Select>
                 </div>
 
-                {/* GPA */}
                 <div className="space-y-2">
                   <Label htmlFor="gpa">GPA (optional)</Label>
                   <Input
@@ -362,7 +328,6 @@ export default function EducationPage() {
                   />
                 </div>
 
-                {/* Transcript URL */}
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="transcript_url">Transcript URL (optional)</Label>
                   <Input
@@ -374,7 +339,6 @@ export default function EducationPage() {
                 </div>
               </div>
 
-              {/* Optional notes */}
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes (optional)</Label>
                 <Textarea
@@ -396,7 +360,6 @@ export default function EducationPage() {
         </Dialog>
       </div>
 
-      {/* List */}
       <AppCard className="p-5">
         <h2 className="text-lg font-medium">Your education records</h2>
 
@@ -411,8 +374,7 @@ export default function EducationPage() {
         {!loading && records.length > 0 && (
           <ul className="mt-3 space-y-3">
             {sorted.map((r) => {
-              const label =
-                r.program_name || r.degree_level?.replaceAll("_", " ") || "Program";
+              const label = r.program_name || r.degree_level?.replaceAll("_", " ") || "Program";
               const inst = r.institution_name || "Institution";
               const period =
                 r.expected_end_on || r.ended_on

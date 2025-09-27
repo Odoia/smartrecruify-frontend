@@ -1,21 +1,26 @@
+// src/app/register/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+
 import { endpoints } from "@/lib/endpoints";
 import { parseAuthHeader, saveTokens } from "@/lib/auth";
+
 import { AppCard } from "@/components/ui/app-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type SignUpJson = {
+type AuthJson = {
   access_token?: string;
   refresh_token?: string;
-  user?: { id: number; email: string; name?: string };
+  id?: number;
+  email?: string;
+  name?: string;
+  role?: string;
   error?: string;
-  details?: unknown;
 };
 
 export default function RegisterPage() {
@@ -30,43 +35,45 @@ export default function RegisterPage() {
     setSubmitting(true);
 
     try {
-      // Dica: loga endpoint para garantir que NEXT_PUBLIC_API_URL foi lido
-      console.log("POST", endpoints.auth.signUp);
-
-      const res = await fetch(endpoints.auth.signUp, {
+      // 1) SIGN UP (payload namespaced)
+      const resSignUp = await fetch(endpoints.auth.signUp, {
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
-        // Sua API aceita corpo plano (igual Insomnia), sem wrapper "user"
-        body: JSON.stringify({ email, password, name }),
-        // Se a API definir/usar cookie httpOnly (refresh), inclua credenciais
         credentials: "include",
+        body: JSON.stringify({ auth: { email, password, name } }),
       });
 
-      const authHeader = parseAuthHeader(res.headers.get("authorization"));
-
-      let json: SignUpJson | undefined;
-      try {
-        json = await res.clone().json();
-      } catch {
-        // se a API não retornar JSON, segue só com o header
-      }
-
-      if (!res.ok) {
-        // Mostra texto bruto quando possível, ajuda no debug
-        const raw = await res.text();
-        const msg = json?.error || raw || `Sign up failed (${res.status})`;
-        console.error("SignUp error:", msg);
-        toast.error(typeof msg === "string" ? msg : "Registration failed");
+      if (!resSignUp.ok) {
+        const body = (await resSignUp.clone().json().catch(() => null)) as AuthJson | null;
+        const raw = await resSignUp.text().catch(() => "");
+        toast.error(body?.error || raw || `Sign up failed (${resSignUp.status})`);
         return;
       }
 
-      const accessToken = authHeader || json?.access_token;
-      saveTokens({ accessToken, refreshToken: json?.refresh_token });
+      // 2) SIGN IN para obter Authorization header (access) e cookie httpOnly (refresh)
+      const resSignIn = await fetch(endpoints.auth.signIn, {
+        method: "POST",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ auth: { email, password } }),
+      });
 
-      toast.success("Account created!");
-      router.replace("/employment"); // ajuste o redirect se quiser
+      const access = parseAuthHeader(resSignIn.headers.get("authorization"));
+      const jsonSignIn = (await resSignIn.clone().json().catch(() => ({}))) as AuthJson;
+
+      if (!resSignIn.ok || !access) {
+        const raw = await resSignIn.text().catch(() => "");
+        toast.error(jsonSignIn?.error || raw || `Sign in failed (${resSignIn.status})`);
+        return;
+      }
+
+      // 3) salva access no storage; refresh vem via cookie httpOnly
+      saveTokens({ accessToken: access, refreshToken: jsonSignIn?.refresh_token });
+
+      toast.success("Account created! You’re signed in.");
+      router.replace("/dashboard");
     } catch (err: any) {
-      console.error("SignUp exception:", err);
+      console.error("Register error:", err);
       toast.error(err?.message || "Network error");
     } finally {
       setSubmitting(false);
@@ -94,7 +101,14 @@ export default function RegisterPage() {
 
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              required
+            />
           </div>
 
           <Button type="submit" disabled={submitting} className="w-full">

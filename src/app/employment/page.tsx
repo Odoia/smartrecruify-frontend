@@ -1,11 +1,12 @@
+// src/app/employment/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { endpoints } from "@/lib/endpoints";
-import { authHeader } from "@/lib/auth";
-import { refreshAccessToken } from "@/lib/session";
+import { authHeader } from "@/lib/auth/auth";
+import { refreshAccessToken } from "@/lib/auth/refresh";
 
 import { AppCard } from "@/components/ui/app-card";
 import { Button } from "@/components/ui/button";
@@ -27,11 +28,11 @@ type EmploymentRecord = {
   id: number;
   company_name?: string;
   job_title?: string;
-  location?: string;
   started_on?: string;           // ISO date
   ended_on?: string | null;      // ISO date or null
   current?: boolean;
-  description?: string | null;
+  job_description?: string | null;
+  responsibilities?: string | null; // se vier do import/edição futura
   created_at?: string;
   updated_at?: string;
 };
@@ -47,11 +48,10 @@ export default function EmploymentPage() {
   // form state
   const [companyName, setCompanyName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
-  const [location, setLocation] = useState("");
   const [startedOn, setStartedOn] = useState("");
   const [current, setCurrent] = useState(true);
   const [endedOn, setEndedOn] = useState("");
-  const [description, setDescription] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function safeFetch(url: string, init?: RequestInit) {
@@ -124,11 +124,11 @@ export default function EmploymentPage() {
         employment_record: {
           company_name: companyName,
           job_title: jobTitle,
-          location: location || null,
           started_on: startedOn,     // "YYYY-MM-DD"
           ended_on: ended,           // null ou "YYYY-MM-DD"
           current,
-          description: description || null,
+          job_description: jobDescription || null,
+          // responsibilities: "...", // (opcional quando for implementar)
         },
       };
 
@@ -150,11 +150,10 @@ export default function EmploymentPage() {
       // limpa form
       setCompanyName("");
       setJobTitle("");
-      setLocation("");
       setStartedOn("");
       setCurrent(true);
       setEndedOn("");
-      setDescription("");
+      setJobDescription("");
 
       await loadRecords();
     } catch (err: any) {
@@ -184,7 +183,7 @@ export default function EmploymentPage() {
             <DialogHeader>
               <DialogTitle>Add employment</DialogTitle>
               <DialogDescription>
-                Add your employment record. You can add detailed experiences after salvar.
+                Add your employment record. You can add detailed experiences after saving.
               </DialogDescription>
             </DialogHeader>
 
@@ -207,16 +206,6 @@ export default function EmploymentPage() {
                     value={jobTitle}
                     onChange={(e) => setJobTitle(e.target.value)}
                     required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location (optional)</Label>
-                  <Input
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Remote, São Paulo, etc."
                   />
                 </div>
 
@@ -260,11 +249,11 @@ export default function EmploymentPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Short description (optional)</Label>
+                <Label htmlFor="job_description">Short description (optional)</Label>
                 <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  id="job_description"
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
                   placeholder="Main responsibilities or summary."
                   rows={4}
                 />
@@ -309,20 +298,20 @@ export default function EmploymentPage() {
                         {r.job_title || "Role"} {r.company_name ? `· ${r.company_name}` : ""}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {period} {r.location ? `· ${r.location}` : ""}
+                        {period}
                       </div>
                     </div>
                     <div>
                       {r.current ? (
                         <Badge>Current</Badge>
                       ) : (
-                          <Badge variant="secondary">Past</Badge>
-                        )}
+                        <Badge variant="secondary">Past</Badge>
+                      )}
                     </div>
                   </div>
 
-                  {r.description ? (
-                    <p className="mt-2 text-sm text-muted-foreground">{r.description}</p>
+                  {r.job_description ? (
+                    <p className="mt-2 text-sm text-muted-foreground">{r.job_description}</p>
                   ) : null}
                 </li>
               );

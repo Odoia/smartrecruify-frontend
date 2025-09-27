@@ -7,8 +7,7 @@ import {
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { endpoints } from "@/lib/endpoints";
-import { authHeader } from "@/lib/auth";
-import { refreshAccessToken } from "@/lib/session";
+import { authHeader, saveTokens, refreshAccessToken } from "@/lib/auth"
 import { toast } from "sonner";
 
 async function postFormWithAuth<T = any>(url: string, form: FormData): Promise<T> {

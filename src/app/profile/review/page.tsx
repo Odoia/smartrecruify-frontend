@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { endpoints } from "@/lib/endpoints";
-import { authHeader } from "@/lib/auth";
-import { refreshAccessToken } from "@/lib/session";
+import { authHeader, refreshAccessToken } from "@/lib/auth";
 
 import { AppCard } from "@/components/ui/app-card";
 import { Button } from "@/components/ui/button";
@@ -72,7 +70,7 @@ async function safeFetch(url: string, init?: RequestInit) {
         credentials: "include",
       });
     } catch {
-      // ignore
+      // ignore, will bubble the error on res.ok below
     }
   }
   return res;
@@ -105,8 +103,6 @@ function titleizeEnumKey(k?: string | null) {
 // ---------- Page ----------
 
 export default function ProfileReviewPage() {
-  const router = useRouter();
-
   // server data
   const [loading, setLoading] = useState(true);
   const [employment, setEmployment] = useState<EmploymentRecord[]>([]);
@@ -494,7 +490,7 @@ export default function ProfileReviewPage() {
 
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading…</p>
-              ) : !hasEmployment ? (
+              ) : employment.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No employment records yet.</p>
               ) : (
                 employment.map((r) => {
@@ -702,7 +698,7 @@ export default function ProfileReviewPage() {
 
               {loading ? (
                 <p className="text-sm text-muted-foreground">Loading…</p>
-              ) : !hasEducation ? (
+              ) : education.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No education records yet.</p>
               ) : (
                 education.map((r) => {

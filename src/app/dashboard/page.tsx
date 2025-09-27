@@ -1,3 +1,4 @@
+// src/app/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,20 +6,19 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { endpoints } from "@/lib/endpoints";
-import { authHeader } from "@/lib/auth";
-import { refreshAccessToken } from "@/lib/session";
+// ✅ importe sempre do barrel
+import { authHeader, refreshAccessToken } from "@/lib/auth";
 
 import { AppCard } from "@/components/ui/app-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-
 import UploadLinkedInPdfCard from "@/components/documents/UploadLinkedInPdfCard";
 
 type EmploymentRecord = {
   id: number;
   company_name?: string;
-  title?: string;
+  job_title?: string;
   started_on?: string;
   ended_on?: string | null;
 };
@@ -29,7 +29,7 @@ type EducationRecord = {
   program_name?: string;
   degree_level?: string;
   started_on?: string;
-  completed_on?: string | null; // aligned with backend
+  completed_on?: string | null;
 };
 
 export default function DashboardPage() {
@@ -39,14 +39,12 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function safeFetch(url: string, init?: RequestInit) {
-    // try with current access token
     let res = await fetch(url, {
       ...init,
       headers: { Accept: "application/json", ...(init?.headers || {}), ...authHeader() },
       credentials: "include",
     });
 
-    // if expired (401), try refresh and retry once
     if (res.status === 401) {
       try {
         await refreshAccessToken();
@@ -56,7 +54,7 @@ export default function DashboardPage() {
           credentials: "include",
         });
       } catch {
-        // refresh failed: let it return 401
+        // mantém 401
       }
     }
     return res;
@@ -104,13 +102,10 @@ export default function DashboardPage() {
 
   const hasEmployment = employment.length > 0;
   const hasEducation = education.length > 0;
-
-  // very simple profile completion: 50% for each section
   const completion = (Number(hasEmployment) + Number(hasEducation)) * 50;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
@@ -128,7 +123,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Checklist + Completion */}
       <AppCard className="p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -147,7 +141,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {/* Employment item */}
           <div className="rounded-[var(--radius)] border border-border p-4 bg-card">
             <div className="flex items-center justify-between">
               <div className="font-medium">Employment</div>
@@ -169,7 +162,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Education item */}
           <div className="rounded-[var(--radius)] border border-border p-4 bg-card">
             <div className="flex items-center justify-between">
               <div className="font-medium">Education</div>
@@ -198,7 +190,6 @@ export default function DashboardPage() {
         </div>
       </AppCard>
 
-      {/* New: LinkedIn PDF upload card (replaces the snapshots) */}
       <UploadLinkedInPdfCard />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
